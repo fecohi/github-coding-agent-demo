@@ -27,7 +27,7 @@ def height_to_inches(h) -> int:
         parts = str(h).split('-')
         if len(parts) == 2:
             return int(parts[0]) * 12 + int(parts[1])
-    except:
+    except (ValueError, IndexError):
         pass
     return 0
 
@@ -63,6 +63,7 @@ with st.sidebar:
     draft_range = st.slider("Draft year", draft_year_min, draft_year_max, (draft_year_min, draft_year_max))
     
     # Height filter (in inches)
+    height_range = None
     if "height_inches" in df.columns:
         height_min = int(df["height_inches"].min())
         height_max = int(df["height_inches"].max())
@@ -75,6 +76,7 @@ with st.sidebar:
         )
     
     # Weight filter (in pounds)
+    weight_range = None
     if "weight" in df.columns:
         weight_min = int(df["weight"].min())
         weight_max = int(df["weight"].max())
@@ -105,9 +107,9 @@ if sel_countries:
     fdf = fdf[fdf["country"].isin(sel_countries)]
 if "draft_year" in fdf:
     fdf = fdf[(fdf["draft_year"] >= draft_range[0]) & (fdf["draft_year"] <= draft_range[1])]
-if "height_inches" in fdf.columns:
+if height_range is not None and "height_inches" in fdf.columns:
     fdf = fdf[(fdf["height_inches"] >= height_range[0]) & (fdf["height_inches"] <= height_range[1])]
-if "weight" in fdf.columns:
+if weight_range is not None and "weight" in fdf.columns:
     fdf = fdf[(fdf["weight"] >= weight_range[0]) & (fdf["weight"] <= weight_range[1])]
 
 st.write(f"Showing **{len(fdf)}** of {len(df)} players")
