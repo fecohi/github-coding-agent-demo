@@ -14,7 +14,22 @@ def load_data(path: str) -> pd.DataFrame:
     for col in ("fname", "lname", "position", "country", "school"):
         if col in df.columns:
             df[col] = df[col].fillna("").astype(str).str.strip()
+    # Convert height to inches for filtering
+    if "height" in df.columns:
+        df["height_inches"] = df["height"].apply(height_to_inches)
     return df
+
+def height_to_inches(h) -> int:
+    """Convert height from 'feet-inches' format to total inches."""
+    if pd.isna(h) or h == '':
+        return 0
+    try:
+        parts = str(h).split('-')
+        if len(parts) == 2:
+            return int(parts[0]) * 12 + int(parts[1])
+    except (ValueError, IndexError):
+        pass
+    return 0
 
 def image_path_for(playerid: str) -> str:
     # Try png then jpg as a fallback
@@ -46,6 +61,32 @@ with st.sidebar:
     draft_year_min = int(df["draft_year"].min()) if "draft_year" in df else 1947
     draft_year_max = int(df["draft_year"].max()) if "draft_year" in df else 2025
     draft_range = st.slider("Draft year", draft_year_min, draft_year_max, (draft_year_min, draft_year_max))
+    
+    # Height filter (in inches)
+    height_range = None
+    if "height_inches" in df.columns:
+        height_min = int(df["height_inches"].min())
+        height_max = int(df["height_inches"].max())
+        height_range = st.slider(
+            "Height (inches)", 
+            height_min, 
+            height_max, 
+            (height_min, height_max),
+            help=f"Filter by player height. Range: {height_min}\" ({height_min//12}'-{height_min%12}) to {height_max}\" ({height_max//12}'-{height_max%12})"
+        )
+    
+    # Weight filter (in pounds)
+    weight_range = None
+    if "weight" in df.columns:
+        weight_min = int(df["weight"].min())
+        weight_max = int(df["weight"].max())
+        weight_range = st.slider(
+            "Weight (lbs)", 
+            weight_min, 
+            weight_max, 
+            (weight_min, weight_max),
+            help=f"Filter by player weight in pounds. Range: {weight_min} to {weight_max} lbs"
+        )
 
 # Filtering
 fdf = df.copy()
@@ -66,6 +107,10 @@ if sel_countries:
     fdf = fdf[fdf["country"].isin(sel_countries)]
 if "draft_year" in fdf:
     fdf = fdf[(fdf["draft_year"] >= draft_range[0]) & (fdf["draft_year"] <= draft_range[1])]
+if height_range is not None and "height_inches" in fdf.columns:
+    fdf = fdf[(fdf["height_inches"] >= height_range[0]) & (fdf["height_inches"] <= height_range[1])]
+if weight_range is not None and "weight" in fdf.columns:
+    fdf = fdf[(fdf["weight"] >= weight_range[0]) & (fdf["weight"] <= weight_range[1])]
 
 st.write(f"Showing **{len(fdf)}** of {len(df)} players")
 
